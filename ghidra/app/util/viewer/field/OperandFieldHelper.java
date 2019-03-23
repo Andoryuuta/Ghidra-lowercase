@@ -55,6 +55,8 @@ abstract class OperandFieldHelper extends FieldFactory {
 		GhidraOptions.OPERAND_GROUP_TITLE + Options.DELIMITER + "Underline References";
 	private final static String SPACE_AFTER_SEPARATOR_OPTION =
 		GhidraOptions.OPERAND_GROUP_TITLE + Options.DELIMITER + "Add Space After Separator";
+	private final static String FORCE_LOWERCASE = 
+		GhidraOptions.OPERAND_GROUP_TITLE + Options.DELIMITER + "Force lowercase";
 
 	public static enum UNDERLINE_CHOICE {
 		Hidden, All, None
@@ -74,6 +76,7 @@ abstract class OperandFieldHelper extends FieldFactory {
 	private boolean isWordWrap = false;
 	private int maxDisplayLines = 2;
 	private boolean spaceAfterSeparator = false;
+	private boolean forceLowercase = false;
 
 	protected BrowserCodeUnitFormat codeUnitFormat;
 	private ChangeListener codeUnitFormatListener = e -> OperandFieldHelper.this.model.update();
@@ -111,6 +114,8 @@ abstract class OperandFieldHelper extends FieldFactory {
 				"select 'None' for no underlines.");
 		fieldOptions.registerOption(SPACE_AFTER_SEPARATOR_OPTION, false, hl,
 			"Add space between separator and next operand");
+		fieldOptions.registerOption(FORCE_LOWERCASE, false, hl,
+			"Forces operands to lowercase, regardless of the sleigh implementation.");
 
 		setMaximumLinesToDisplay(fieldOptions.getInt(MAX_DISPLAY_LINES_MSG, 2), fieldOptions);
 		isWordWrap = fieldOptions.getBoolean(ENABLE_WORD_WRAP_MSG, false);
@@ -118,6 +123,8 @@ abstract class OperandFieldHelper extends FieldFactory {
 		underlineChoice = fieldOptions.getEnum(UNDERLINE_OPTION, UNDERLINE_CHOICE.Hidden);
 
 		spaceAfterSeparator = fieldOptions.getBoolean(SPACE_AFTER_SEPARATOR_OPTION, false);
+
+		forceLowercase = fieldOptions.getBoolean(FORCE_LOWERCASE, false);
 
 		inspector = new SymbolInspector(displayOptions, null);
 		fieldOptions.getOptions(GhidraOptions.OPERAND_GROUP_TITLE).setOptionsHelpLocation(hl);
@@ -154,6 +161,9 @@ abstract class OperandFieldHelper extends FieldFactory {
 		}
 		else if (optionName.equals(SPACE_AFTER_SEPARATOR_OPTION)) {
 			spaceAfterSeparator = ((Boolean) newValue).booleanValue();
+			updateModel = true;
+		} else if (optionName.equals(FORCE_LOWERCASE)) {
+			forceLowercase = ((Boolean) newValue).booleanValue();
 			updateModel = true;
 		}
 		if (updateModel) {
@@ -461,7 +471,11 @@ abstract class OperandFieldHelper extends FieldFactory {
 		}
 
 		ColorStyleAttributes attributes = getOpAttributes(opElem, inst, opIndex);
-		AttributedString as = new AttributedString(opElem.toString(), attributes.colorAttribute,
+		String opElemStr = opElem.toString();
+		if(forceLowercase){
+			opElemStr = opElemStr.toLowerCase();
+		}
+		AttributedString as = new AttributedString(opElemStr, attributes.colorAttribute,
 			getMetrics(attributes.styleAttribute), underline, underlineColor);
 		elements.add(new OperandFieldElement(as, opIndex, subOpIndex, characterOffset));
 		return characterOffset + as.length();
